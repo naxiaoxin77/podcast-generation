@@ -45,10 +45,11 @@ async function main() {
   const noVideo = args.includes("--no-video");
   const videoOnly = args.includes("--video-only");
 
-  if (inputIndex === -1 && !fromKanban) {
+  if (inputIndex === -1 && !fromKanban && !videoOnly) {
     console.error("Usage:");
     console.error("  npx tsx src/index.ts --from-kanban [--limit 5] [--keep]");
     console.error("  npx tsx src/index.ts --input <articles-dir> [--keep]");
+    console.error("  npx tsx src/index.ts --video-only");
     process.exit(1);
   }
 
@@ -61,6 +62,7 @@ async function main() {
     const loadedTimings = JSON.parse(fs.readFileSync(path.join(config.outputDir, "timings.json"), "utf-8"));
     const loadedCues = JSON.parse(fs.readFileSync(path.join(config.outputDir, "subtitle-cues.json"), "utf-8"));
     const loadedOverlays = JSON.parse(fs.readFileSync(path.join(config.outputDir, "overlays.json"), "utf-8"));
+    if (!loadedTimings.length) throw new Error("timings.json 为空，无法渲染视频");
     const videoProps: PodcastCompositionProps = {
       audioPath: "podcast.mp3",
       totalDuration: loadedTimings[loadedTimings.length - 1]?.endTime ?? 0,
