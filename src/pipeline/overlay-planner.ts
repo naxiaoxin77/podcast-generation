@@ -50,6 +50,9 @@ const CardSchema = z.discriminatedUnion("layout", [
 
 const CardsArraySchema = z.array(CardSchema).min(1).max(3);
 
+type CardWithTime = z.infer<typeof CardSchema>;
+type CardData = Omit<CardWithTime, "startTime">;
+
 const CARD_DURATION = 10; // seconds each card is visible
 
 // ── Exported helpers (also used by tests) ────────────────────────────────────
@@ -65,10 +68,11 @@ export function parseOverlayResponse(
 
   return cards.map(card => {
     const { startTime, ...rest } = card;
+    const slideData: CardData = rest;
     return {
       startTime,
       endTime: startTime + CARD_DURATION,
-      slideData: rest as SlideData,
+      slideData: slideData as SlideData,
     };
   });
 }
@@ -77,7 +81,7 @@ export function parseOverlayResponse(
 export function applyTimingConstraints(
   items: OverlayItem[],
   articleStartTime: number,
-  _articleEndTime: number
+  articleEndTime: number
 ): OverlayItem[] {
   const minFirst = articleStartTime + 3;
   const result: OverlayItem[] = [];
@@ -92,7 +96,13 @@ export function applyTimingConstraints(
       start = Math.max(start, prevEnd + 15);
     }
 
-    result.push({ ...item, startTime: start, endTime: start + CARD_DURATION });
+    // 跳过起始时间已超过文章结束时间的卡片
+    if (start >= articleEndTime) continue;
+
+    // 截断 endTime，不超过文章结束时间
+    const end = Math.min(start + CARD_DURATION, articleEndTime);
+
+    result.push({ ...item, startTime: start, endTime: end });
   }
 
   return result;

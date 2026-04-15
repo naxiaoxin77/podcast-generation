@@ -53,4 +53,29 @@ describe("applyTimingConstraints", () => {
     const result = applyTimingConstraints(items, 0, 60);
     expect(result[1].startTime).toBeGreaterThanOrEqual(result[0].endTime + 15);
   });
+
+  it("does not push first card if already past articleStart + 3", () => {
+    const items = [
+      { startTime: 10, endTime: 20, slideData: { layout: "quote" as const, quote: "test" } },
+    ];
+    const result = applyTimingConstraints(items, 0, 60);
+    // startTime: 10 > articleStart(0) + 3, should stay at 10
+    expect(result[0].startTime).toBe(10);
+  });
+
+  it("truncates card endTime to articleEndTime", () => {
+    const items = [
+      { startTime: 55, endTime: 65, slideData: { layout: "quote" as const, quote: "test" } },
+    ];
+    const result = applyTimingConstraints(items, 0, 60);
+    expect(result[0].endTime).toBe(60); // truncated to articleEndTime
+  });
+
+  it("skips cards that start at or after articleEndTime", () => {
+    const items = [
+      { startTime: 61, endTime: 71, slideData: { layout: "quote" as const, quote: "test" } },
+    ];
+    const result = applyTimingConstraints(items, 0, 60);
+    expect(result).toHaveLength(0);
+  });
 });
