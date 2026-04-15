@@ -47,8 +47,8 @@ export const PodcastBackground: React.FC = () => {
     >
       {PARTICLES.map((p, i) => {
         // Slow drift
-        const x = (p.x + p.speedX * t * 100) % 100;
-        const y = (p.y + p.speedY * t * 100) % 100;
+        const x = ((p.x + p.speedX * t * 100) % 100 + 100) % 100;
+        const y = ((p.y + p.speedY * t * 100) % 100 + 100) % 100;
         // Breathing opacity
         const breathe = Math.sin(t * 0.5 + p.phase) * 0.15;
         const opacity = Math.max(0.1, Math.min(0.8, p.opacity + breathe));

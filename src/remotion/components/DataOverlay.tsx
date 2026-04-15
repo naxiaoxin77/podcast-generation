@@ -20,9 +20,13 @@ const SingleOverlay: React.FC<{ item: OverlayItem; startFrame: number; endFrame:
 
   if (localFrame < 0 || localFrame >= totalFrames) return null;
 
+  // Guard against too-short overlays where enter + exit > total
+  const safeTotalFrames = Math.max(totalFrames, enterDuration + exitDuration + 1);
+  const safeExitStart = safeTotalFrames - exitDuration;
+
   const opacity = interpolate(
     localFrame,
-    [0, enterDuration, totalFrames - exitDuration, totalFrames],
+    [0, enterDuration, safeExitStart, safeTotalFrames],
     [0, 1, 1, 0],
     { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
   );

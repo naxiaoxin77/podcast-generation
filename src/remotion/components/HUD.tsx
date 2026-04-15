@@ -12,7 +12,7 @@ interface Props {
 export const HUD: React.FC<Props> = ({ podcastTitle, date, totalDuration }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const progress = frame / (totalDuration * fps);
+  const progress = totalDuration > 0 ? frame / (totalDuration * fps) : 0;
   const { hud } = designConfig;
 
   return (
