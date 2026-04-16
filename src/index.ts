@@ -7,7 +7,8 @@ import { generateAllTTS, generateSingleTTS } from "./pipeline/tts-generator.js";
 import { concatAudioFiles } from "./utils/ffmpeg.js";
 import { scanKanbanForArticles } from "./workflow/obsidian-scan.js";
 import type { NewsArticle, SubtitleCue, OverlayItem } from "./pipeline/types.js";
-import { generateSubtitleCues } from "./pipeline/subtitle-generator.js";
+import { generateSrtSubtitleCues } from "./pipeline/srt-generator.js";
+import { resolveOutputName } from "./utils/naming.js";
 import { planOverlays } from "./pipeline/overlay-planner.js";
 import { renderPodcastVideo } from "./remotion/render.js";
 import type { PodcastCompositionProps } from "./pipeline/types.js";
@@ -72,7 +73,7 @@ async function main() {
       podcastTitle: scriptsData.title,
       date: new Date().toISOString().slice(0, 10),
     };
-    const videoOutputPath = path.join(config.outputDir, `podcast-${Date.now()}.mp4`);
+    const videoOutputPath = resolveOutputName(config.outputDir, "mp4");
     await renderPodcastVideo(videoProps, videoOutputPath);
     console.log(`\n完成！视频: ${videoOutputPath}`);
     return;
@@ -188,7 +189,7 @@ async function main() {
     path.join(ttsDir, "outro.mp3"),
   ];
 
-  const finalAudioPath = path.join(config.outputDir, `podcast-${Date.now()}.mp3`);
+  const finalAudioPath = resolveOutputName(config.outputDir, "mp3");
   const audioPath = await concatAudioFiles(audioPaths, finalAudioPath);
 
   console.log(`  输出: ${audioPath}`);
@@ -209,11 +210,11 @@ async function main() {
 
   if (!noVideo) {
     console.log("\n=== Step 5: 生成字幕时间轴 ===");
-    subtitleCues = generateSubtitleCues(
-      introText,
-      podcastMeta.articleScripts,
-      outroText,
-      allTimings
+    subtitleCues = await generateSrtSubtitleCues(
+      allTimings,
+      ttsDir,
+      config.geminiApiKey,
+      { introText, articleScripts: podcastMeta.articleScripts, outroText }
     );
     fs.writeFileSync(
       path.join(config.outputDir, "subtitle-cues.json"),
@@ -243,7 +244,7 @@ async function main() {
     const publicAudioPath = path.join(config.publicDir, "podcast.mp3");
     fs.copyFileSync(audioPath, publicAudioPath);
 
-    const videoOutputPath = path.join(config.outputDir, `podcast-${Date.now()}.mp4`);
+    const videoOutputPath = resolveOutputName(config.outputDir, "mp4");
     const videoProps: PodcastCompositionProps = {
       audioPath: "podcast.mp3",
       totalDuration,
