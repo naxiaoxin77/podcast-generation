@@ -28,7 +28,7 @@ describe("resolveOutputName", () => {
     expect(result).toBe(path.join(tmpDir, `laona-digest-${today}-2.mp3`));
   });
 
-  it("已有 -1 和 -2 时递增为 -3", () => {
+  it("已有 base 和 -2 时递增为 -3", () => {
     const today = new Date().toISOString().slice(0, 10);
     fs.writeFileSync(path.join(tmpDir, `laona-digest-${today}.mp3`), "");
     fs.writeFileSync(path.join(tmpDir, `laona-digest-${today}-2.mp3`), "");
@@ -41,10 +41,5 @@ describe("resolveOutputName", () => {
     fs.writeFileSync(path.join(tmpDir, `laona-digest-${today}.mp3`), "");
     const mp4Result = resolveOutputName(tmpDir, "mp4");
     expect(mp4Result).toBe(path.join(tmpDir, `laona-digest-${today}.mp4`));
-  });
-
-  it("返回的路径包含 outputDir 前缀", () => {
-    const result = resolveOutputName(tmpDir, "mp4");
-    expect(result.startsWith(tmpDir)).toBe(true);
   });
 });
