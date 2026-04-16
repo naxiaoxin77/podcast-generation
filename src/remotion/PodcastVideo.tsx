@@ -5,6 +5,7 @@ import { SegmentTitleCard } from "./components/SegmentTitleCard.js";
 import { DataOverlay } from "./components/DataOverlay.js";
 import { SubtitleBar } from "./components/SubtitleBar.js";
 import { HUD } from "./components/HUD.js";
+import { WaveformBar } from "./components/WaveformBar.js";
 import type { PodcastCompositionProps } from "../pipeline/types.js";
 
 export const PodcastVideo: React.FC<PodcastCompositionProps> = ({
@@ -41,6 +42,9 @@ export const PodcastVideo: React.FC<PodcastCompositionProps> = ({
 
       {/* Layer 4: Data overlays */}
       <DataOverlay overlays={overlays} />
+
+      {/* Layer 4.5: Waveform */}
+      <WaveformBar audioPath={audioPath} />
 
       {/* Layer 5: Subtitles */}
       <SubtitleBar cues={subtitleCues} />
