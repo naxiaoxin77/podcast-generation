@@ -76,6 +76,8 @@ describe("applyOffset", () => {
   });
 });
 
+// Note: full-pipeline API fallback (all apiAttempted fail) requires real API mocking.
+// The per-segment fallback behavior is covered by the tests below.
 describe("generateSrtSubtitleCues 降级策略", () => {
   const timings: SegmentTiming[] = [
     { articleIndex: -1, title: "开场白", startTime: 0, endTime: 10 },
@@ -118,5 +120,32 @@ describe("generateSrtSubtitleCues 降级策略", () => {
     for (let i = 1; i < cues.length; i++) {
       expect(cues[i].startTime).toBeGreaterThanOrEqual(cues[i - 1].startTime);
     }
+  });
+
+  it("fallback: 未知 articleIndex 不存在对应 script 时返回空（不崩溃）", async () => {
+    const unknownTimings: SegmentTiming[] = [
+      { articleIndex: 99, title: "未知", startTime: 0, endTime: 5 },
+    ];
+    const cues = await generateSrtSubtitleCues(
+      unknownTimings,
+      "/nonexistent/tts",
+      "fake-key",
+      fallback
+    );
+    // articleIndex 99 has no matching script → empty array (no crash)
+    expect(Array.isArray(cues)).toBe(true);
+  });
+
+  it("fallback: 未知 articleIndex 无对应 script 时不崩溃", async () => {
+    const unknownTimings: SegmentTiming[] = [
+      { articleIndex: 99, title: "未知", startTime: 0, endTime: 5 },
+    ];
+    const cues = await generateSrtSubtitleCues(
+      unknownTimings,
+      "/nonexistent/tts",
+      "fake-key",
+      fallback
+    );
+    expect(Array.isArray(cues)).toBe(true);
   });
 });

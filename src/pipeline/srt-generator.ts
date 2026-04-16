@@ -85,6 +85,8 @@ export async function transcribeSegment(
   const fileManager = new GoogleAIFileManager(apiKey);
   const genai = new GoogleGenerativeAI(apiKey);
 
+  // If uploadFile throws, no remote file exists yet, so cleanup is a no-op.
+  // The finally block still runs but deleteFile will fail silently (caught).
   const uploadResult = await fileManager.uploadFile(audioPath, {
     mimeType: "audio/mpeg",
     displayName: path.basename(audioPath),
@@ -176,14 +178,16 @@ function getFallbackCuesForSegment(
   fallback: SrtFallbackData
 ): SubtitleCue[] {
   if (timing.articleIndex === -1) {
+    if (!fallback.introText) return [];
     return generateSubtitleCues(fallback.introText, [], "", [timing]);
   } else if (timing.articleIndex === -2) {
+    if (!fallback.outroText) return [];
     return generateSubtitleCues("", [], fallback.outroText, [timing]);
   } else {
     const script = fallback.articleScripts.find(
       (s) => s.articleIndex === timing.articleIndex
     );
-    if (!script) return [];
+    if (!script || !script.text) return [];
     return generateSubtitleCues("", [script], "", [timing]);
   }
 }
