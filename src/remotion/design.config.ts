@@ -35,7 +35,7 @@ export const designConfig = {
     backgroundColor: "rgba(245, 230, 200, 0.95)",
     borderRadius: 8,
     padding: "12px 24px",
-    bottomOffset: 48,
+    bottomOffset: 52,
     maxWidth: 1600,
     lineHeight: 1.6,
   },
@@ -169,6 +169,18 @@ export const designConfig = {
     nodeMarginBottom: 52,
     spring: { damping: 14, stiffness: 120 },
     maxStaggerDelay: 18,
+  },
+
+  waveform: {
+    height: 52,
+    bottomOffset: 100,
+    barWidth: 3,
+    barGap: 2,
+    barColor: "rgba(232, 200, 122, 0.6)",
+    minBarHeight: 2,
+    maxBarHeight: 44,
+    numberOfSamples: 128,
+    padding: 40,
   },
 
 } as const;
