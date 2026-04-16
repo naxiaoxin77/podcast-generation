@@ -4,6 +4,8 @@ import {
   applyOffset,
   type TranscribedCue,
 } from "../pipeline/srt-generator.js";
+import { generateSrtSubtitleCues, type SrtFallbackData } from "../pipeline/srt-generator.js";
+import type { SegmentTiming, ArticleScript } from "../pipeline/types.js";
 
 describe("parseTranscriptResponse", () => {
   it("标准单行格式", () => {
@@ -71,5 +73,50 @@ describe("applyOffset", () => {
 
   it("空数组返回空数组", () => {
     expect(applyOffset([], 10)).toEqual([]);
+  });
+});
+
+describe("generateSrtSubtitleCues 降级策略", () => {
+  const timings: SegmentTiming[] = [
+    { articleIndex: -1, title: "开场白", startTime: 0, endTime: 10 },
+    { articleIndex: 0, title: "文章一", startTime: 10, endTime: 30 },
+    { articleIndex: -2, title: "结束语", startTime: 30, endTime: 40 },
+  ];
+
+  const fallback: SrtFallbackData = {
+    introText: "欢迎收听今天的节目。",
+    articleScripts: [
+      {
+        articleIndex: 0,
+        title: "文章一",
+        text: "这是文章一的内容。非常有趣。",
+        estimatedDuration: 10,
+      } as ArticleScript,
+    ],
+    outroText: "感谢收听，再见。",
+  };
+
+  it("TTS 文件不存在时降级估算并返回非空数组", async () => {
+    const cues = await generateSrtSubtitleCues(
+      timings,
+      "/nonexistent/tts",
+      "fake-key",
+      fallback
+    );
+    expect(cues.length).toBeGreaterThan(0);
+    expect(cues[0].startTime).toBeGreaterThanOrEqual(0);
+    expect(cues[cues.length - 1].startTime).toBeLessThan(40);
+  });
+
+  it("降级结果按 startTime 升序排列", async () => {
+    const cues = await generateSrtSubtitleCues(
+      timings,
+      "/nonexistent/tts",
+      "fake-key",
+      fallback
+    );
+    for (let i = 1; i < cues.length; i++) {
+      expect(cues[i].startTime).toBeGreaterThanOrEqual(cues[i - 1].startTime);
+    }
   });
 });
