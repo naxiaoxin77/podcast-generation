@@ -10,6 +10,7 @@ export interface TranscribedCue {
  * Handles [MM:SS.mmm] and [H:MM:SS.mmm] formats.
  * Strips markdown code block wrappers.
  * Returns [] on parse failure (does not throw).
+ * Note: requires at least MM:SS.mmm format; bare SS.mmm (no minutes) is not supported.
  */
 export function parseTranscriptResponse(text: string): TranscribedCue[] {
   // Strip markdown code block wrappers (```...``` or ```plaintext...```)
@@ -38,6 +39,7 @@ export function parseTranscriptResponse(text: string): TranscribedCue[] {
  * Apply a timing offset to TranscribedCue[], producing SubtitleCue[].
  * endTime of each cue = startTime of next cue.
  * Last cue's endTime = startTime + estimated duration (text.length / 5, min 1s).
+ * Times are rounded to 3 decimal places (millisecond precision) to avoid floating-point errors.
  */
 export function applyOffset(
   cues: TranscribedCue[],
@@ -45,13 +47,15 @@ export function applyOffset(
 ): SubtitleCue[] {
   if (cues.length === 0) return [];
 
+  const round3 = (n: number) => Math.round(n * 1000) / 1000;
+
   return cues.map((c, i) => {
-    const startTime = segmentStartTime + c.relativeTime;
+    const startTime = round3(segmentStartTime + c.relativeTime);
     const nextRelative = cues[i + 1]?.relativeTime;
     const endTime =
       nextRelative !== undefined
-        ? segmentStartTime + nextRelative
-        : startTime + Math.max(1, c.text.length / 5);
+        ? round3(segmentStartTime + nextRelative)
+        : round3(startTime + Math.max(1, c.text.length / 5));
     return { startTime, endTime, text: c.text };
   });
 }

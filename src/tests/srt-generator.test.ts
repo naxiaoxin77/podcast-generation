@@ -48,7 +48,7 @@ describe("applyOffset", () => {
     const result = applyOffset(input, 10);
     expect(result).toHaveLength(1);
     expect(result[0].startTime).toBe(12.5);
-    expect(result[0].endTime).toBeGreaterThan(12.5);
+    expect(result[0].endTime).toBe(13.5); // max(1, 4/5) = 1s → 12.5 + 1 = 13.5
     expect(result[0].text).toBe("测试内容");
   });
 
