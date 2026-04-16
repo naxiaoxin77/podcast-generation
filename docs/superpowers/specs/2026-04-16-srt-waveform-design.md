@@ -49,21 +49,42 @@
 **文件：** `src/pipeline/srt-generator.ts`
 
 ```typescript
+import type { SubtitleCue, SegmentTiming, ArticleScript } from "./types.js";
+import { generateSubtitleCues } from "./subtitle-generator.js";
+
 export interface TranscribedCue {
   relativeTime: number;  // 秒，相对于该段起点
   text: string;
 }
 
+/** 解析 Gemini 响应文本为 TranscribedCue[]（纯函数，供测试） */
+export function parseTranscriptResponse(text: string): TranscribedCue[]
+
+/** 将 TranscribedCue[] 应用时间偏移，输出 SubtitleCue[]（纯函数，供测试） */
+export function applyOffset(cues: TranscribedCue[], segmentStartTime: number): SubtitleCue[]
+
+/** 上传单段音频到 Gemini 并转录，返回带全局时间戳的 SubtitleCue[] */
 export async function transcribeSegment(
   audioPath: string,
   segmentStartTime: number,  // 秒，该段在全局音频中的起始时间
   apiKey: string
 ): Promise<SubtitleCue[]>
 
+export interface SrtFallbackData {
+  introText: string;
+  articleScripts: ArticleScript[];
+  outroText: string;
+}
+
+/**
+ * 转录所有段并合并为全局 SubtitleCue[]。
+ * fallback 参数用于单段转录失败时降级到字符数估算版。
+ */
 export async function generateSrtSubtitleCues(
   timings: SegmentTiming[],
   ttsDir: string,            // tts 文件目录，含 intro.mp3 / article-NN.mp3 / outro.mp3
-  apiKey: string
+  apiKey: string,
+  fallback: SrtFallbackData  // 必填，降级时使用
 ): Promise<SubtitleCue[]>
 ```
 
@@ -79,9 +100,12 @@ export async function generateSrtSubtitleCues(
 
 ### 2.5 降级策略
 
-`generateSrtSubtitleCues` 内部对每段做 try/catch：
-- 单段转录失败 → 对该段使用 `generateSubtitleCues`（估算版）补充
-- 全部失败 → 完整回退到估算版，`console.warn` 提示
+`generateSrtSubtitleCues` 内部对每段做 try/catch，降级时使用 `fallback` 参数中的原始文本：
+
+- **单段转录失败**：对该段调用 `generateSubtitleCues`（估算版），传入对应文本（intro/article/outro）和该段 timing，追加到结果中，`console.warn` 标记
+- **全部失败**：完整回退到 `generateSubtitleCues(fallback.introText, fallback.articleScripts, fallback.outroText, timings)`
+
+`generateSubtitleCues` 的单段降级逻辑：通过 `timing.articleIndex` 判断使用 `introText`、`outroText` 或对应 `ArticleScript.text`，与 `subtitle-generator.ts` 现有实现一致。
 
 ### 2.6 index.ts 改动
 
@@ -92,7 +116,12 @@ Step 5 替换调用（其余不变）：
 subtitleCues = generateSubtitleCues(introText, podcastMeta.articleScripts, outroText, allTimings);
 
 // 新
-subtitleCues = await generateSrtSubtitleCues(allTimings, ttsDir, config.geminiApiKey);
+subtitleCues = await generateSrtSubtitleCues(
+  allTimings,
+  ttsDir,
+  config.geminiApiKey,
+  { introText, articleScripts: podcastMeta.articleScripts, outroText }  // 降级备用
+);
 ```
 
 ---
@@ -112,15 +141,21 @@ subtitleCues = await generateSrtSubtitleCues(allTimings, ttsDir, config.geminiAp
 
 ```typescript
 const audioData = useAudioData(staticFile(audioPath));
+// audioData 在音频未加载时为 null，返回 null 不渲染
+if (!audioData) return null;
+
 const visualization = visualizeAudio({
   fps,
   frame,
   audioData,
-  numberOfSamples: 128,
+  numberOfSamples: 128,  // 输出 128 个振幅采样
 });
 ```
 
-每根柱高度 = `Math.max(2, visualization[i] * 44)`
+**渲染柱数**：`visualization` 数组固定 128 个元素，全部渲染为 128 根柱。
+可用宽度 `1920 - 2×40 = 1840px`，128 根柱 × (3px 宽 + 2px 间距) = 640px，居中显示，两侧留白约 600px，视觉上整洁。如需更密集的效果可调大 `numberOfSamples`（最大 2048）。
+
+每根柱高度 = `Math.max(waveform.minBarHeight, visualization[i] * waveform.maxBarHeight)`
 
 ### 3.3 文件
 
@@ -164,8 +199,17 @@ waveform: {
 
 ### 3.4 SubtitleBar 位置联动
 
-现有 SubtitleBar `bottomOffset: 48px`，WaveformBar `bottomOffset: 100px`，两者不重叠（52px 高的波形条恰好位于字幕条上方）。
-`design.config.ts` 中将 `subtitle.bottomOffset` 从 48 → 52，保留 8px 间隙。
+布局坐标验证（从屏幕底部向上）：
+
+```
+bottom: 0px          ── 进度条（2px）
+bottom: 52px         ── 字幕条顶部（高约 48px = 24px 字号 + 上下 padding 12px×2）
+bottom: 100px        ── 波形条底部
+bottom: 152px        ── 波形条顶部（100 + 52px 高度）
+```
+
+波形条底部（100px）= 字幕条顶部（52px）+ 8px 间隙，不重叠。
+`design.config.ts` 中将 `subtitle.bottomOffset` 从 48 → 52，留出 8px 间隙。
 
 ---
 
@@ -195,7 +239,11 @@ export function resolveOutputName(outputDir: string, ext: "mp3" | "mp4"): string
 
 逻辑：检查 `outputDir` 中是否已有同日期文件，自动追加数字后缀。
 
-**修改：** `src/index.ts` — Step 4（MP3）和 Step 7（MP4）使用新函数替换 `podcast-${Date.now()}` 命名。
+**修改：** `src/index.ts` — Step 4（MP3）、Step 7（MP4）**以及 `--video-only` 快速路径**均使用新函数替换 `podcast-${Date.now()}` 命名。
+
+**计数器按扩展名分别计数**：`.mp3` 和 `.mp4` 独立递增，互不影响。
+同一天先生成音频再生成视频，两者均为 `laona-digest-YYYY-MM-DD.{ext}`（各自的第一次）。
+同一天第二次完整运行：`laona-digest-YYYY-MM-DD-2.mp3` 和 `laona-digest-YYYY-MM-DD-2.mp4`。
 
 ### 4.3 不受影响的中间文件
 
@@ -239,21 +287,33 @@ export function resolveOutputName(outputDir: string, ext: "mp3" | "mp4"): string
 ### srt-generator.test.ts（单元测试，不调用真实 API）
 
 ```typescript
-// 1. 时间戳解析
-parseTimestampLine("[01:23.456] 今天的新闻")
-// → { relativeTime: 83.456, text: "今天的新闻" }
+// 1. 标准格式解析
+parseTranscriptResponse("[01:23.456] 今天的新闻")
+// → [{ relativeTime: 83.456, text: "今天的新闻" }]
 
 // 2. 多行解析
 parseTranscriptResponse("[00:00.500] 第一句。\n[00:03.200] 第二句。")
 // → [{ relativeTime: 0.5, text: "第一句。" }, { relativeTime: 3.2, text: "第二句。" }]
 
 // 3. 时间偏移
-applyOffset(cues, segmentStartTime: 10)
-// → cues 中每个 startTime += 10
+applyOffset([{ relativeTime: 2.5, text: "测试" }], 10)
+// → [{ startTime: 12.5, endTime: 12.5, text: "测试" }]
+// （endTime 由下一句 startTime 填充，最后一句 endTime = startTime + 估算时长）
 
 // 4. 无法解析时返回空数组（不抛出）
 parseTranscriptResponse("无法识别的格式")
 // → []
+
+// 5. 超过 1 小时的格式（H:MM:SS.mmm）
+parseTranscriptResponse("[1:02:03.456] 长音频")
+// → [{ relativeTime: 3723.456, text: "长音频" }]
+
+// 6. Gemini 响应包裹 markdown 代码块时能正确提取
+parseTranscriptResponse("```\n[00:01.000] 句子\n```")
+// → [{ relativeTime: 1.0, text: "句子" }]
+
+// 7. mimeType 必须为 "audio/mpeg"（不是 "audio/mp3"）
+// 在 transcribeSegment 的实现注释中标注
 ```
 
 ### naming.test.ts（单元测试）
