@@ -46,15 +46,35 @@ const TimelineCardSchema = BaseCard.extend({
   nodes: z.array(z.object({ label: z.string(), description: z.string().optional() })).min(1),
 });
 
+const StatRowCardSchema = BaseCard.extend({
+  layout: z.literal("stat-row"),
+  title: z.string().optional(),
+  stats: z.array(z.object({
+    label: z.string(),
+    value: z.string(),
+    unit: z.string().optional(),
+    trend: z.string().optional(),
+    trendUp: z.boolean().optional(),
+  })).min(1).max(4),
+});
+
+const TextHighlightCardSchema = BaseCard.extend({
+  layout: z.literal("text-highlight"),
+  text: z.string(),
+  subtext: z.string().optional(),
+});
+
 const CardSchema = z.discriminatedUnion("layout", [
   BulletListCardSchema,
   BigNumberCardSchema,
   ComparisonCardSchema,
   QuoteCardSchema,
   TimelineCardSchema,
+  StatRowCardSchema,
+  TextHighlightCardSchema,
 ]);
 
-const CardsArraySchema = z.array(CardSchema).min(1).max(3);
+const CardsArraySchema = z.array(CardSchema).min(2).max(6);
 
 type CardWithTime = z.infer<typeof CardSchema>;
 type CardData = Omit<CardWithTime, "startTime">;
@@ -83,7 +103,7 @@ export function parseOverlayResponse(
   });
 }
 
-/** Enforce timing rules: first card >= articleStart+3, spacing >= 15s between cards. */
+/** Enforce timing rules: first card >= articleStart+3, spacing >= 12s between cards. */
 export function applyTimingConstraints(
   items: OverlayItem[],
   articleStartTime: number,
@@ -99,7 +119,7 @@ export function applyTimingConstraints(
       start = Math.max(start, minFirst);
     } else {
       const prevEnd = result[result.length - 1].endTime;
-      start = Math.max(start, prevEnd + 15);
+      start = Math.max(start, prevEnd + 12);
     }
 
     // 跳过起始时间已超过文章结束时间的卡片
@@ -117,47 +137,61 @@ export function applyTimingConstraints(
 // ── Main export ───────────────────────────────────────────────────────────────
 
 function buildSystemPrompt(): string {
-  return `你是一个播客数据卡片规划师。给定一篇新闻口播稿和它在音频中的起止时间，
-输出 2~3 张数据叠层卡片的 JSON 数组。
+  return `你是一个播客数据可视化专家。给定一篇新闻口播稿和它在音频中的起止时间，输出 3～6 张数据叠层卡片的 JSON 数组。
 
-卡片类型选择优先级：
-- big-number：文章有具体数字时优先选
-- bullet-list：提炼 2~4 个要点
-- quote：有金句时选
-- comparison：有明显对比时选
-- timeline：有时间线事件序列时选
+目标：几乎每个关键论点都应该有一张可视化卡片支撑，让观看者不用听声音也能从画面获取核心信息。
+
+卡片类型选择规则：
+- stat-row：**最优先**。文章里有 2-4 个相关数据/指标时用这个，用多列并排展示（3列最美观）
+- big-number：只有 1 个关键数字时用
+- text-highlight：提炼核心论点/金句，每篇必须至少 1 张，配合 stat-row 一起用
+- bullet-list：3-4 个要点但无数据时用
+- comparison：有明显对比（A vs B）时用
+- quote：有金句/反话时用
+- timeline：有时间线时用
 
 每张卡片必须包含 startTime（秒，绝对时间）。
-只输出 JSON 数组，不要任何说明文字。
+只输出 JSON 数组，不要代码块，不要说明文字。
 
-各类型 JSON 格式示例（严格按此格式，不得改动字段名）：
+各类型 JSON 格式（严格按此，不得改动字段名）：
 
-big-number: {"layout":"big-number","title":"GMV蒸发","number":380,"unit":"亿","subtitle":"腾讯内容电商年损失","startTime":15}
+stat-row（三列统计，stats 数组 2-4 项）：
+{"layout":"stat-row","title":"Claude 降智实况","stats":[{"label":"分析样本","value":"7,000","unit":"次","trend":"Claude Code对话"},{"label":"推理字元","value":"2200→600","trend":"▼ 暴跌 -73%","trendUp":false},{"label":"不读档案就改代码","value":"6%→33.7%","trend":"▼ +461%","trendUp":false}],"startTime":15}
 
-bullet-list items 必须是对象数组，每项含 text 字段：
-{"layout":"bullet-list","title":"三大核心问题","items":[{"text":"没有股权保护"},{"text":"只拿工资"},{"text":"风险全担"}],"startTime":30}
+text-highlight（核心论点，text 控制在 20 字内）：
+{"layout":"text-highlight","text":"模型没变笨，是算力分配出了问题","subtext":"本质是 Anthropic 在拆东墙补西墙","startTime":45}
 
-comparison 必须含 left/right 两个对象，每个含 label 和 items（字符串数组）：
-{"layout":"comparison","title":"合伙 vs 打工","left":{"label":"真合伙人","items":["有股权","共担风险"]},"right":{"label":"假合伙人","items":["只拿薪水","无退出机制"]},"startTime":60}
+big-number（单个大数字）：
+{"layout":"big-number","title":"GMV蒸发","number":380,"unit":"亿","subtitle":"腾讯内容电商年损失","startTime":70}
 
-quote: {"layout":"quote","quote":"不拿工资的合伙人是最贵的员工","attribution":"创始人说","startTime":45}
+bullet-list（要点列表，items 用对象数组）：
+{"layout":"bullet-list","title":"三大核心问题","items":[{"text":"没有股权保护"},{"text":"只拿工资不担风险"},{"text":"无退出机制"}],"startTime":90}
 
-timeline nodes 必须是对象数组，每项含 label 字段：
-{"layout":"timeline","title":"事件经过","nodes":[{"label":"2020年签约"},{"label":"2022年亏损"},{"label":"2024年解散"}],"startTime":80}
+comparison（对比，left/right 各含 label 和 items 字符串数组）：
+{"layout":"comparison","title":"合伙 vs 打工","left":{"label":"真合伙人","items":["有股权","共担风险"]},"right":{"label":"假合伙人","items":["只拿薪水","无退出机制"]},"startTime":100}
 
-只输出 JSON 数组，不要代码块，不要说明文字。`;
+timeline（时间线，nodes 用对象数组含 label）：
+{"layout":"timeline","title":"事件经过","nodes":[{"label":"2020年签约"},{"label":"2022年亏损"},{"label":"2024年解散"}],"startTime":120}`;
 }
 
 function buildUserPrompt(
   script: ArticleScript,
   timing: SegmentTiming
 ): string {
+  const duration = timing.endTime - timing.startTime;
+  const targetCount = Math.max(3, Math.min(6, Math.floor(duration / 18)));
   return `文章标题：${script.title}
-在音频中的时间段：${timing.startTime.toFixed(1)}s ~ ${timing.endTime.toFixed(1)}s
+在音频中的时间段：${timing.startTime.toFixed(1)}s ~ ${timing.endTime.toFixed(1)}s（共 ${duration.toFixed(0)} 秒）
+
 口播稿全文：
 ${script.text}
 
-请生成 2~3 张数据卡片。startTime 必须在 ${(timing.startTime + 3).toFixed(1)} ~ ${(timing.endTime - 12).toFixed(1)} 范围内。`;
+任务：提取 ${targetCount}～${Math.min(targetCount + 2, 6)} 张卡片，覆盖文章的不同论点。
+- startTime 必须在 ${(timing.startTime + 3).toFixed(1)} ~ ${(timing.endTime - 12).toFixed(1)} 之间
+- 卡片之间至少间隔 12 秒
+- 优先用 stat-row（有数据时）和 text-highlight（提炼论点），不要全用 bullet-list
+- stat-row 的 value 字段可以是字符串，支持 "X → Y" 格式表示变化
+- 数字必须来自文章，不要编造`;
 }
 
 export async function planOverlays(
