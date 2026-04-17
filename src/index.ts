@@ -11,6 +11,7 @@ import { generateSrtSubtitleCues } from "./pipeline/srt-generator.js";
 import { resolveOutputName } from "./utils/naming.js";
 import { planOverlays } from "./pipeline/overlay-planner.js";
 import { renderPodcastVideo } from "./remotion/render.js";
+import { publishToObsidian } from "./workflow/podcast-publisher.js";
 import type { PodcastCompositionProps } from "./pipeline/types.js";
 
 /** 从目录读取 markdown 文章 */
@@ -207,6 +208,7 @@ async function main() {
   // ── Step 5: 生成字幕时间轴 ──────────────────────────────────────
   let subtitleCues: SubtitleCue[] = [];
   let overlays: OverlayItem[] = [];
+  let videoOutputPath = "";
 
   if (!noVideo) {
     console.log("\n=== Step 5: 生成字幕时间轴 ===");
@@ -244,7 +246,7 @@ async function main() {
     const publicAudioPath = path.join(config.publicDir, "podcast.mp3");
     fs.copyFileSync(audioPath, publicAudioPath);
 
-    const videoOutputPath = resolveOutputName(config.outputDir, "mp4");
+    videoOutputPath = resolveOutputName(config.outputDir, "mp4");
     const videoProps: PodcastCompositionProps = {
       audioPath: "podcast.mp3",
       totalDuration,
@@ -269,7 +271,20 @@ async function main() {
   ].join("\n");
   fs.writeFileSync(path.join(config.outputDir, "metadata.md"), metadata, "utf-8");
 
-  // ── Step 9: 清理 ─────────────────────────────────────────────
+  // ── Step 9: 落盘到 Obsidian ─────────────────────────────────────
+  if (fromKanban) {
+    console.log("\n=== Step 9: 落盘到 Obsidian ===");
+    const today = new Date().toISOString().slice(0, 10);
+    await publishToObsidian({
+      date: today,
+      audioPath,
+      videoPath: noVideo ? "" : videoOutputPath,
+      podcastMeta,
+    });
+    console.log(`  ✅ 产物已落盘: natebrain/03_Content_Factory/01_Final_Assets/podcast/${today}/`);
+  }
+
+  // ── Step 10: 清理 ─────────────────────────────────────────────
   if (keepArtifacts) {
     console.log("\n=== 保留中间文件 (--keep) ===");
   } else {
