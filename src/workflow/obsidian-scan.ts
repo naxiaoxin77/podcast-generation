@@ -6,18 +6,11 @@
 import fs from "fs";
 import path from "path";
 import type { NewsArticle } from "../pipeline/types.js";
+import { VAULT_BASE, vaultFullPath } from "./vault-config.js";
 
-// Vault 根目录（从 app.vault.adapter.basePath 获取）
-// 注意：用正斜杠，避免 \b \O \M 等被解释为转义字符
-const VAULT_BASE = "E:/natebrain";
 const KANBAN_VAULT_PATH = "内容生产流水线.md";
 
 // ====== 文件系统工具 ======
-
-function vaultFullPath(vaultRelPath: string): string {
-  // 用正斜杠拼接，Node.js 在 Windows 上支持正斜杠路径
-  return VAULT_BASE + "/" + vaultRelPath;
-}
 
 function readVaultFile(vaultRelPath: string): string {
   const fullPath = vaultFullPath(vaultRelPath);
