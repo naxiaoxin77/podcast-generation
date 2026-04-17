@@ -53,6 +53,21 @@ function extractTitle(vaultPath: string): string {
     .trim();
 }
 
+/**
+ * 判断路径中的日期是否在过去 N 小时内。
+ * 使用截止时刻所在天的零点比较，避免傍晚运行时同天文章被误过滤。
+ */
+export function isWithinHours(p: string, hours: number): boolean {
+  const dateStr = extractDateFromPath(p);
+  if (dateStr === "0000-00-00") return false;
+  const articleDate = new Date(dateStr + "T00:00:00");
+  const cutoffMs = Date.now() - hours * 3600 * 1000;
+  const cutoffDay = new Date(
+    new Date(cutoffMs).toISOString().slice(0, 10) + "T00:00:00"
+  );
+  return articleDate >= cutoffDay;
+}
+
 /** 将 wikilink 路径补全（加 .md 后缀；去掉多余的 natebrain/ 前缀，因为 VAULT_BASE 已经指向 natebrain 目录） */
 function resolveVaultPath(linkPath: string): string {
   // 兼容旧数据：wikilink 可能含有 "natebrain/" 前缀，去掉即可
@@ -65,7 +80,8 @@ function resolveVaultPath(linkPath: string): string {
 // ====== 主扫描函数 ======
 
 export interface ScanOptions {
-  limit?: number;   // 最多返回几篇，默认 5
+  limit?: number;        // 最多返回几篇，默认 5
+  withinHours?: number;  // 只取该小时数内的文章，默认 24；传 0 不过滤
 }
 
 export async function scanKanbanForArticles(options: ScanOptions = {}): Promise<NewsArticle[]> {
@@ -88,8 +104,18 @@ export async function scanKanbanForArticles(options: ScanOptions = {}): Promise<
   }
   console.log(`  已发布列共 ${allLinks.length} 篇文章`);
 
+  // 过滤：仅保留过去 withinHours 小时内的文章（默认 24h）
+  const hours = options.withinHours ?? 24;
+  const filteredLinks = hours > 0
+    ? allLinks.filter(link => isWithinHours(link, hours))
+    : allLinks;
+  if (filteredLinks.length === 0) {
+    throw new Error(`过去 ${hours} 小时内没有已发布文章`);
+  }
+  console.log(`  过去 ${hours}h 内共 ${filteredLinks.length} 篇`);
+
   // 3. 按日期降序排序，取最新 N 篇
-  const topLinks = [...allLinks]
+  const topLinks = [...filteredLinks]
     .sort((a, b) => extractDateFromPath(b).localeCompare(extractDateFromPath(a)))
     .slice(0, limit);
 
