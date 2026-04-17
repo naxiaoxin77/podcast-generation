@@ -60,12 +60,14 @@ function extractTitle(vaultPath: string): string {
 export function isWithinHours(p: string, hours: number): boolean {
   const dateStr = extractDateFromPath(p);
   if (dateStr === "0000-00-00") return false;
-  const articleDate = new Date(dateStr + "T00:00:00");
-  const cutoffMs = Date.now() - hours * 3600 * 1000;
-  const cutoffDay = new Date(
-    new Date(cutoffMs).toISOString().slice(0, 10) + "T00:00:00"
-  );
-  return articleDate >= cutoffDay;
+  const articleDate = new Date(dateStr + "T00:00:00");  // 本地时间零点
+
+  // cutoffDate：本地时间今天零点，向前推 floor(hours/24) 天
+  const cutoffDate = new Date();
+  cutoffDate.setHours(0, 0, 0, 0);
+  cutoffDate.setDate(cutoffDate.getDate() - Math.floor(hours / 24));
+
+  return articleDate >= cutoffDate;
 }
 
 /** 将 wikilink 路径补全（加 .md 后缀；去掉多余的 natebrain/ 前缀，因为 VAULT_BASE 已经指向 natebrain 目录） */
@@ -92,8 +94,9 @@ export async function scanKanbanForArticles(options: ScanOptions = {}): Promise<
   let kanbanContent: string;
   try {
     kanbanContent = readVaultFile(KANBAN_VAULT_PATH);
-  } catch (err: any) {
-    throw new Error(`无法读取看板文件 ${vaultFullPath(KANBAN_VAULT_PATH)}: ${err.message}`);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    throw new Error(`无法读取看板文件 ${vaultFullPath(KANBAN_VAULT_PATH)}: ${message}`);
   }
   console.log(`  看板文件: ${kanbanContent.length} 字节`);
 
@@ -143,8 +146,9 @@ export async function scanKanbanForArticles(options: ScanOptions = {}): Promise<
 
       articles.push({ title, content, sourcePath: vaultPath });
       console.log(`  ✅ ${title} (${content.length} 字)`);
-    } catch (err: any) {
-      console.warn(`  ⚠️ 跳过（读取失败）: ${title} — ${err.message}`);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.warn(`  ⚠️ 跳过（读取失败）: ${title} — ${message}`);
     }
   }
 
