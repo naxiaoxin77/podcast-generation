@@ -1,7 +1,7 @@
 import fs, { promises as fsp } from "fs";
 import path from "path";
 import type { PodcastMeta } from "../pipeline/types.js";
-import { VAULT_BASE, vaultFullPath } from "./vault-config.js";
+import { vaultFullPath } from "./vault-config.js";
 
 // ====== 内部工具 ======
 
@@ -32,7 +32,7 @@ export interface PublishOptions {
  * 生成 shownote.md 内容（纯函数，供单元测试）。
  * 格式：节目标题 + 每篇文章加粗标题 + 口播稿前 2 句摘要。
  */
-export function generateShownote(podcastMeta: PodcastMeta, date: string): string {
+export function generateShownote(podcastMeta: PodcastMeta): string {
   const lines: string[] = [
     `# ${podcastMeta.title}`,
     "",
@@ -58,7 +58,7 @@ export function generateShownote(podcastMeta: PodcastMeta, date: string): string
 export async function publishToObsidian(options: PublishOptions): Promise<void> {
   const { date, audioPath, videoPath, podcastMeta } = options;
 
-  const destDir = vaultFullPath(path.join("03_Content_Factory/01_Final_Assets/podcast", date));
+  const destDir = vaultFullPath("03_Content_Factory/01_Final_Assets/podcast/" + date);
   await fsp.mkdir(destDir, { recursive: true });
 
   // 验证源文件存在
@@ -78,6 +78,6 @@ export async function publishToObsidian(options: PublishOptions): Promise<void> 
   }
 
   // 写入 shownote.md（覆盖）
-  const shownote = generateShownote(podcastMeta, date);
+  const shownote = generateShownote(podcastMeta);
   await fsp.writeFile(destDir + "/shownote.md", shownote, "utf-8");
 }

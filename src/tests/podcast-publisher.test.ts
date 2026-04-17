@@ -22,29 +22,29 @@ const meta: PodcastMeta = {
 
 describe("generateShownote", () => {
   it("包含节目标题行", () => {
-    const result = generateShownote(meta, "2026-04-17");
+    const result = generateShownote(meta);
     expect(result).toContain("# 每日商业快报 - 2026-04-17");
   });
 
   it("包含'本期内容'小标题", () => {
-    const result = generateShownote(meta, "2026-04-17");
+    const result = generateShownote(meta);
     expect(result).toContain("## 本期内容");
   });
 
   it("每篇文章标题加粗", () => {
-    const result = generateShownote(meta, "2026-04-17");
+    const result = generateShownote(meta);
     expect(result).toContain("**文章标题一**");
     expect(result).toContain("**文章标题二**");
   });
 
   it("取口播稿前 2 句作为摘要，不含第 3 句", () => {
-    const result = generateShownote(meta, "2026-04-17");
+    const result = generateShownote(meta);
     expect(result).toContain("这是第一句话。这是第二句话。");
     expect(result).not.toContain("这是第三句话");
   });
 
   it("只有 1 句时取全文", () => {
-    const result = generateShownote(meta, "2026-04-17");
+    const result = generateShownote(meta);
     expect(result).toContain("只有一句话。");
   });
 
@@ -53,11 +53,11 @@ describe("generateShownote", () => {
       title: "测试",
       articleScripts: [{ articleIndex: 0, title: "空", text: "", estimatedDuration: 0 }],
     };
-    expect(() => generateShownote(emptyMeta, "2026-04-17")).not.toThrow();
+    expect(() => generateShownote(emptyMeta)).not.toThrow();
   });
 
   it("shownote 以换行符结尾", () => {
-    const result = generateShownote(meta, "2026-04-17");
+    const result = generateShownote(meta);
     expect(result.endsWith("\n")).toBe(true);
   });
 });
