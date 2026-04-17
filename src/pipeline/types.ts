@@ -102,12 +102,34 @@ export interface TimelineSlide {
   theme?: SlideColorTheme;
 }
 
+export interface StatRowSlide {
+  layout: "stat-row";
+  title?: string;
+  stats: Array<{
+    label: string;      // 小标签，如 "来源：AMD分析"
+    value: string;      // 大值，可含箭头，如 "7,000" 或 "2200 → 600"
+    unit?: string;      // 单位，如 "次"
+    trend?: string;     // 趋势说明，如 "▼ 暴跌 -73%"
+    trendUp?: boolean;  // true=涨（绿），false=跌（红），undefined=中性
+  }>;
+  theme?: SlideColorTheme;
+}
+
+export interface TextHighlightSlide {
+  layout: "text-highlight";
+  text: string;         // 主要大字
+  subtext?: string;     // 小字说明（可选）
+  theme?: SlideColorTheme;
+}
+
 export type SlideData =
   | BulletListSlide
   | BigNumberSlide
   | ComparisonSlide
   | QuoteSlide
-  | TimelineSlide;
+  | TimelineSlide
+  | StatRowSlide
+  | TextHighlightSlide;
 
 /** One subtitle sentence with absolute timestamps */
 export interface SubtitleCue {

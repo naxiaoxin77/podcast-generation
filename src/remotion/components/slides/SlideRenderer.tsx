@@ -5,6 +5,8 @@ import { BigNumberSlide } from "./BigNumberSlide";
 import { ComparisonSlide } from "./ComparisonSlide";
 import { QuoteSlide } from "./QuoteSlide";
 import { TimelineSlide } from "./TimelineSlide";
+import { StatRowSlide } from "./StatRowSlide";
+import { TextHighlightSlide } from "./TextHighlightSlide";
 
 export const SlideRenderer: React.FC<{
   slideData: SlideData;
@@ -28,6 +30,10 @@ export const SlideRenderer: React.FC<{
       return <QuoteSlide data={data} durationInFrames={durationInFrames} />;
     case "timeline":
       return <TimelineSlide data={data} durationInFrames={durationInFrames} />;
+    case "stat-row":
+      return <StatRowSlide data={data as any} durationInFrames={durationInFrames} />;
+    case "text-highlight":
+      return <TextHighlightSlide data={data as any} durationInFrames={durationInFrames} />;
     default:
       return null;
   }
