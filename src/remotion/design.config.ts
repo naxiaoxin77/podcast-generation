@@ -11,7 +11,7 @@ export const designConfig = {
   },
 
   theme: {
-    background: "linear-gradient(160deg, #1a1208 0%, #0d0904 100%)",
+    background: "linear-gradient(160deg, #141210 0%, #0a0908 100%)",
     accent: "#e8c87a",
     accentMuted: "#c8a46e",
     text: "#f5e6c8",
@@ -28,16 +28,16 @@ export const designConfig = {
   },
 
   subtitle: {
-    fontSize: 24,
-    fontWeight: 600,
-    color: "#1a0e04",
-    highlightColor: "#c05010",
-    backgroundColor: "rgba(245, 230, 200, 0.95)",
-    borderRadius: 8,
-    padding: "12px 24px",
-    bottomOffset: 52,
-    maxWidth: 1600,
-    lineHeight: 1.6,
+    fontSize: 40,
+    fontWeight: 700,
+    color: "#ffffff",
+    highlightColor: "#e8c87a",
+    backgroundColor: "rgba(0, 0, 0, 0.72)",
+    borderRadius: 0,
+    padding: "18px 60px",
+    bottomOffset: 0,
+    maxWidth: 1920,
+    lineHeight: 1.5,
   },
 
   titleCard: {
@@ -173,10 +173,10 @@ export const designConfig = {
 
   waveform: {
     height: 52,
-    bottomOffset: 100,
+    bottomOffset: 90,
     barWidth: 3,
     barGap: 2,
-    barColor: "rgba(232, 200, 122, 0.6)",
+    barColor: "rgba(232, 200, 122, 0.7)",
     minBarHeight: 2,
     maxBarHeight: 44,
     numberOfSamples: 128,

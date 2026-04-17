@@ -22,19 +22,14 @@ export const SubtitleBar: React.FC<Props> = ({ cues }) => {
   const { subtitle } = designConfig;
 
   return (
-    <AbsoluteFill
-      style={{ pointerEvents: "none" }}
-    >
+    <AbsoluteFill style={{ pointerEvents: "none" }}>
       <div
         style={{
           position: "absolute",
           bottom: subtitle.bottomOffset,
-          left: "50%",
-          transform: "translateX(-50%)",
-          maxWidth: subtitle.maxWidth,
-          width: "90%",
+          left: 0,
+          right: 0,
           backgroundColor: subtitle.backgroundColor,
-          borderRadius: subtitle.borderRadius,
           padding: subtitle.padding,
           textAlign: "center",
           fontFamily,
