@@ -53,15 +53,14 @@ export const designConfig = {
   },
 
   overlay: {
-    width: 420,
-    rightOffset: 40,
-    topOffset: 80,
-    bgColor: "rgba(10, 6, 2, 0.92)",
-    borderColor: "rgba(200, 164, 110, 0.45)",
-    borderRadius: 10,
-    enterDuration: 12,  // frames
-    exitDuration: 9,    // frames
-    slideDistance: 60,  // px
+    width: 1300,
+    bgColor: "rgba(8, 6, 4, 0.88)",
+    borderColor: "rgba(200, 164, 110, 0.35)",
+    borderRadius: 16,
+    enterDuration: 18,  // frames
+    exitDuration: 12,   // frames
+    scaleFrom: 0.94,    // 入场起始缩放
+    yFrom: 30,          // 入场 Y 偏移（像素），从略低处浮上来
   },
 
   hud: {

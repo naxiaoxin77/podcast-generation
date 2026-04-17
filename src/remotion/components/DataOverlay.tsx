@@ -16,14 +16,14 @@ const SingleOverlay: React.FC<{ item: OverlayItem; startFrame: number; endFrame:
   const frame = useCurrentFrame();
   const localFrame = frame - startFrame;
   const totalFrames = endFrame - startFrame;
-  const { enterDuration, exitDuration, slideDistance } = designConfig.overlay;
+  const { enterDuration, exitDuration, scaleFrom, yFrom } = designConfig.overlay;
 
   if (localFrame < 0 || localFrame >= totalFrames) return null;
 
-  // Guard against too-short overlays where enter + exit > total
   const safeTotalFrames = Math.max(totalFrames, enterDuration + exitDuration + 1);
   const safeExitStart = safeTotalFrames - exitDuration;
 
+  // 透明度：入场淡入，退场淡出
   const opacity = interpolate(
     localFrame,
     [0, enterDuration, safeExitStart, safeTotalFrames],
@@ -31,10 +31,19 @@ const SingleOverlay: React.FC<{ item: OverlayItem; startFrame: number; endFrame:
     { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
   );
 
-  const translateX = interpolate(
+  // 缩放：入场从 scaleFrom 放大到 1.0
+  const scale = interpolate(
     localFrame,
     [0, enterDuration],
-    [slideDistance, 0],
+    [scaleFrom, 1],
+    { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
+  );
+
+  // Y 位移：入场从略低处浮上来
+  const translateY = interpolate(
+    localFrame,
+    [0, enterDuration],
+    [yFrom, 0],
     { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
   );
 
@@ -44,11 +53,12 @@ const SingleOverlay: React.FC<{ item: OverlayItem; startFrame: number; endFrame:
     <div
       style={{
         position: "absolute",
-        right: overlay.rightOffset,
-        top: overlay.topOffset,
+        // 居中定位
+        left: "50%",
+        top: "50%",
+        transform: `translate(-50%, -50%) scale(${scale}) translateY(${translateY}px)`,
         width: overlay.width,
         opacity,
-        transform: `translateX(${translateX}px)`,
         backgroundColor: overlay.bgColor,
         border: `1px solid ${overlay.borderColor}`,
         borderRadius: overlay.borderRadius,
