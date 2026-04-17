@@ -1,7 +1,7 @@
-import fs from "fs";
+import fs, { promises as fsp } from "fs";
 import path from "path";
 import type { PodcastMeta } from "../pipeline/types.js";
-import { VAULT_BASE } from "./vault-config.js";
+import { VAULT_BASE, vaultFullPath } from "./vault-config.js";
 
 // ====== 内部工具 ======
 
@@ -58,19 +58,26 @@ export function generateShownote(podcastMeta: PodcastMeta, date: string): string
 export async function publishToObsidian(options: PublishOptions): Promise<void> {
   const { date, audioPath, videoPath, podcastMeta } = options;
 
-  const destDir =
-    VAULT_BASE + "/03_Content_Factory/01_Final_Assets/podcast/" + date;
-  fs.mkdirSync(destDir, { recursive: true });
+  const destDir = vaultFullPath(path.join("03_Content_Factory/01_Final_Assets/podcast", date));
+  await fsp.mkdir(destDir, { recursive: true });
+
+  // 验证源文件存在
+  if (!fs.existsSync(audioPath)) {
+    throw new Error(`publishToObsidian: 音频文件不存在: ${audioPath}`);
+  }
+  if (videoPath && !fs.existsSync(videoPath)) {
+    throw new Error(`publishToObsidian: 视频文件不存在: ${videoPath}`);
+  }
 
   // 复制 MP3
-  fs.copyFileSync(audioPath, destDir + "/" + path.basename(audioPath));
+  await fsp.copyFile(audioPath, destDir + "/" + path.basename(audioPath));
 
   // 复制 MP4（可选）
   if (videoPath) {
-    fs.copyFileSync(videoPath, destDir + "/" + path.basename(videoPath));
+    await fsp.copyFile(videoPath, destDir + "/" + path.basename(videoPath));
   }
 
   // 写入 shownote.md（覆盖）
   const shownote = generateShownote(podcastMeta, date);
-  fs.writeFileSync(destDir + "/shownote.md", shownote, "utf-8");
+  await fsp.writeFile(destDir + "/shownote.md", shownote, "utf-8");
 }
