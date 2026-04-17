@@ -14,21 +14,33 @@ import { renderPodcastVideo } from "./remotion/render.js";
 import { publishToObsidian } from "./workflow/podcast-publisher.js";
 import type { PodcastCompositionProps } from "./pipeline/types.js";
 
-/** 从目录读取 markdown 文章 */
+/** 递归收集目录下所有 .md 文件路径 */
+function collectMdFiles(dirPath: string): string[] {
+  const entries = fs.readdirSync(dirPath, { withFileTypes: true });
+  const files: string[] = [];
+  for (const entry of entries) {
+    const fullPath = path.join(dirPath, entry.name);
+    if (entry.isDirectory()) {
+      files.push(...collectMdFiles(fullPath));
+    } else if (entry.isFile() && entry.name.endsWith(".md")) {
+      files.push(fullPath);
+    }
+  }
+  return files.sort();
+}
+
+/** 从目录读取 markdown 文章（支持子目录） */
 function loadArticlesFromDir(dirPath: string): NewsArticle[] {
   if (!fs.existsSync(dirPath)) {
     throw new Error(`Input directory not found: ${dirPath}`);
   }
-  const files = fs.readdirSync(dirPath)
-    .filter(f => f.endsWith(".md"))
-    .sort();
+  const files = collectMdFiles(dirPath);
   if (files.length === 0) throw new Error(`No .md files found in: ${dirPath}`);
 
-  return files.map(f => {
-    const filePath = path.join(dirPath, f);
+  return files.map(filePath => {
     let content = fs.readFileSync(filePath, "utf-8");
     content = content.replace(/^---\s*\n[\s\S]*?\n---\s*\n/, "");
-    return { title: path.basename(f, ".md"), content: content.trim(), sourcePath: filePath };
+    return { title: path.basename(filePath, ".md"), content: content.trim(), sourcePath: filePath };
   });
 }
 

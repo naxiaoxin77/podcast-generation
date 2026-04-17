@@ -44,9 +44,10 @@ describe("parseOverlayResponse", () => {
     expect(items[0].slideData.layout).toBe("bullet-list");
   });
 
-  it("throws on invalid layout type", () => {
+  it("skips cards with invalid layout type", () => {
     const raw = JSON.stringify([{ layout: "invalid", startTime: 10 }]);
-    expect(() => parseOverlayResponse(raw, 10, 60)).toThrow();
+    const items = parseOverlayResponse(raw, 10, 60);
+    expect(items).toHaveLength(0);
   });
 });
 

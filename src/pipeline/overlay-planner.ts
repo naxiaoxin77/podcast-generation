@@ -74,7 +74,7 @@ const CardSchema = z.discriminatedUnion("layout", [
   TextHighlightCardSchema,
 ]);
 
-const CardsArraySchema = z.array(CardSchema).min(2).max(6);
+const CardsArraySchema = z.array(z.unknown()).min(1);
 
 type CardWithTime = z.infer<typeof CardSchema>;
 type CardData = Omit<CardWithTime, "startTime">;
@@ -83,24 +83,34 @@ const CARD_DURATION = 10; // seconds each card is visible
 
 // ── Exported helpers (also used by tests) ────────────────────────────────────
 
-/** Parse and validate Gemini JSON output into OverlayItem[]. */
+/** Parse and validate Gemini JSON output into OverlayItem[].
+ *  Parses each card individually; silently skips cards that fail validation.
+ */
 export function parseOverlayResponse(
   jsonText: string,
   articleStartTime: number,
   articleEndTime: number
 ): OverlayItem[] {
   const raw = JSON.parse(jsonText);
-  const cards = CardsArraySchema.parse(raw);
+  const rawCards = CardsArraySchema.parse(raw);
 
-  return cards.map(card => {
+  const items: OverlayItem[] = [];
+  for (const rawCard of rawCards) {
+    const result = CardSchema.safeParse(rawCard);
+    if (!result.success) {
+      console.warn(`    ⚠️ 跳过无效卡片: ${result.error.message}`);
+      continue;
+    }
+    const card = result.data;
     const { startTime, ...rest } = card;
     const slideData: CardData = rest;
-    return {
+    items.push({
       startTime,
       endTime: startTime + CARD_DURATION,
       slideData: slideData as SlideData,
-    };
-  });
+    });
+  }
+  return items;
 }
 
 /** Enforce timing rules: first card >= articleStart+3, spacing >= 12s between cards. */
