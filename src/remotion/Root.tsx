@@ -1,9 +1,9 @@
 import React from "react";
 import { Composition, registerRoot } from "remotion";
 import type { CalculateMetadataFunction } from "remotion";
-import { PodcastVideo } from "./PodcastVideo.js";
-import type { PodcastCompositionProps } from "../pipeline/types.js";
-import { designConfig } from "./design.config.js";
+import { PodcastVideo } from "./PodcastVideo";
+import type { PodcastCompositionProps } from "../pipeline/types";
+import { designConfig } from "./design.config";
 
 type RemotionProps = PodcastCompositionProps & Record<string, unknown>;
 

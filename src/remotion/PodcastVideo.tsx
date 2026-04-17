@@ -1,12 +1,12 @@
 import React from "react";
 import { AbsoluteFill, Audio, staticFile, useVideoConfig } from "remotion";
-import { PodcastBackground } from "./components/PodcastBackground.js";
-import { SegmentTitleCard } from "./components/SegmentTitleCard.js";
-import { DataOverlay } from "./components/DataOverlay.js";
-import { SubtitleBar } from "./components/SubtitleBar.js";
-import { HUD } from "./components/HUD.js";
-import { WaveformBar } from "./components/WaveformBar.js";
-import type { PodcastCompositionProps } from "../pipeline/types.js";
+import { PodcastBackground } from "./components/PodcastBackground";
+import { SegmentTitleCard } from "./components/SegmentTitleCard";
+import { DataOverlay } from "./components/DataOverlay";
+import { SubtitleBar } from "./components/SubtitleBar";
+import { HUD } from "./components/HUD";
+import { WaveformBar } from "./components/WaveformBar";
+import type { PodcastCompositionProps } from "../pipeline/types";
 
 export const PodcastVideo: React.FC<PodcastCompositionProps> = ({
   audioPath,

@@ -1,8 +1,8 @@
 import React from "react";
 import { AbsoluteFill, useCurrentFrame, useVideoConfig } from "remotion";
-import { designConfig } from "../design.config.js";
-import { fontFamily } from "../fonts.js";
-import type { SubtitleCue } from "../../pipeline/types.js";
+import { designConfig } from "../design.config";
+import { fontFamily } from "../fonts";
+import type { SubtitleCue } from "../../pipeline/types";
 
 interface Props {
   cues: SubtitleCue[];

@@ -3,7 +3,7 @@ import { renderMedia, selectComposition } from "@remotion/renderer";
 import path from "path";
 import { fileURLToPath } from "url";
 import fs from "fs";
-import type { PodcastCompositionProps } from "../pipeline/types.js";
+import type { PodcastCompositionProps } from "../pipeline/types";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 

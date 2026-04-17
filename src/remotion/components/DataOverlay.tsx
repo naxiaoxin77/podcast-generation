@@ -1,8 +1,8 @@
 import React from "react";
 import { AbsoluteFill, interpolate, useCurrentFrame, useVideoConfig } from "remotion";
-import { designConfig } from "../design.config.js";
-import { SlideRenderer } from "./slides/SlideRenderer.js";
-import type { OverlayItem } from "../../pipeline/types.js";
+import { designConfig } from "../design.config";
+import { SlideRenderer } from "./slides/SlideRenderer";
+import type { OverlayItem } from "../../pipeline/types";
 
 interface Props {
   overlays: OverlayItem[];

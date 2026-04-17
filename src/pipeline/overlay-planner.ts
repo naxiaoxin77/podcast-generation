@@ -6,10 +6,16 @@ import type { ArticleScript, SegmentTiming, OverlayItem, SlideData } from "./typ
 
 const BaseCard = z.object({ startTime: z.number() });
 
+// Gemini sometimes returns plain strings; normalize to { text } objects via transform
+const BulletListItemSchema = z.union([
+  z.string().transform(s => ({ text: s })),
+  z.object({ icon: z.string().optional(), text: z.string() }),
+]);
+
 const BulletListCardSchema = BaseCard.extend({
   layout: z.literal("bullet-list"),
   title: z.string(),
-  items: z.array(z.object({ icon: z.string().optional(), text: z.string() })).min(1),
+  items: z.array(BulletListItemSchema).min(1),
 });
 
 const BigNumberCardSchema = BaseCard.extend({
@@ -124,8 +130,22 @@ function buildSystemPrompt(): string {
 每张卡片必须包含 startTime（秒，绝对时间）。
 只输出 JSON 数组，不要任何说明文字。
 
-JSON 格式示例（big-number）：
-[{"layout":"big-number","title":"GMV蒸发","number":380,"unit":"亿","subtitle":"腾讯内容电商年损失","startTime":15}]`;
+各类型 JSON 格式示例（严格按此格式，不得改动字段名）：
+
+big-number: {"layout":"big-number","title":"GMV蒸发","number":380,"unit":"亿","subtitle":"腾讯内容电商年损失","startTime":15}
+
+bullet-list items 必须是对象数组，每项含 text 字段：
+{"layout":"bullet-list","title":"三大核心问题","items":[{"text":"没有股权保护"},{"text":"只拿工资"},{"text":"风险全担"}],"startTime":30}
+
+comparison 必须含 left/right 两个对象，每个含 label 和 items（字符串数组）：
+{"layout":"comparison","title":"合伙 vs 打工","left":{"label":"真合伙人","items":["有股权","共担风险"]},"right":{"label":"假合伙人","items":["只拿薪水","无退出机制"]},"startTime":60}
+
+quote: {"layout":"quote","quote":"不拿工资的合伙人是最贵的员工","attribution":"创始人说","startTime":45}
+
+timeline nodes 必须是对象数组，每项含 label 字段：
+{"layout":"timeline","title":"事件经过","nodes":[{"label":"2020年签约"},{"label":"2022年亏损"},{"label":"2024年解散"}],"startTime":80}
+
+只输出 JSON 数组，不要代码块，不要说明文字。`;
 }
 
 function buildUserPrompt(

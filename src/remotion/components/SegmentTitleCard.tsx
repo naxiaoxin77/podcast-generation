@@ -1,7 +1,7 @@
 import React from "react";
 import { AbsoluteFill, interpolate, useCurrentFrame } from "remotion";
-import { designConfig } from "../design.config.js";
-import { fontFamily } from "../fonts.js";
+import { designConfig } from "../design.config";
+import { fontFamily } from "../fonts";
 
 interface Props {
   articleNumber: number;  // 1-based display number

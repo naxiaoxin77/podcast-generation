@@ -1,7 +1,7 @@
 import React from "react";
 import { AbsoluteFill, useCurrentFrame, useVideoConfig } from "remotion";
-import { designConfig } from "../design.config.js";
-import { fontFamily } from "../fonts.js";
+import { designConfig } from "../design.config";
+import { fontFamily } from "../fonts";
 
 interface Particle {
   x: number;      // % from left

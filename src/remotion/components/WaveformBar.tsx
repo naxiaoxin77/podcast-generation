@@ -1,7 +1,7 @@
 import React from "react";
 import { useCurrentFrame, useVideoConfig, staticFile } from "remotion";
 import { useAudioData, visualizeAudio } from "@remotion/media-utils";
-import { designConfig } from "../design.config.js";
+import { designConfig } from "../design.config";
 
 interface Props {
   audioPath: string; // relative to publicDir, e.g. "podcast.mp3"
